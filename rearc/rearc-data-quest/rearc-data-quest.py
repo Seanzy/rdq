@@ -20,11 +20,11 @@ def lambda_handler(event, context):
     s3_client = boto3.client('s3')
     BASE_URL = os.getenv("BASE_URL")
     REARC_BUCKET = os.getenv("REARC_BUCKET")
-    html_elements = []
     folders = ['pr']
+    html_elements = []
     site_files = []
     urls = []
-    s3_client = boto3.client('s3')
+
     
     try:
         requests_session = requests.Session()
@@ -43,10 +43,10 @@ def lambda_handler(event, context):
             # pp.pprint(html_elements)
             # print("site_files:")
             # pp.pprint(site_files)
-            print("\n")
+            # print("\n")
             # print("urls:")
             # pp.pprint(urls)
-            print("\n")
+            # print("\n")
             # print("Number of site_files:", len(site_files))
             
         else:  
@@ -86,7 +86,6 @@ def lambda_handler(event, context):
         # logger.info(s3_file_keys, "\n")
     
 
-    # try:
     # check which files from the site exist in the bucket
     if len(s3_files) >= 1: 
         for i in range(len(site_files)):
