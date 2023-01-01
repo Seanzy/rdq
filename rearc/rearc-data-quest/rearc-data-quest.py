@@ -11,54 +11,49 @@ from requests.adapters import HTTPAdapter, Retry
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-def lambda_handler(event, context):
+def lambda_handler(event, context): 
     
     print(event)
     logger.info(event)
     
     http = urllib3.PoolManager()
     s3_client = boto3.client('s3')
-    BLS_BASE_URL = os.getenv("BLS_BASE_URL")
-    rearc_bucket = os.getenv("REARC_BUCKET")
+    BASE_URL = os.getenv("BASE_URL")
+    REARC_BUCKET = os.getenv("REARC_BUCKET")
     html_elements = []
-    bls_dirs = ['pr']
-    file_paths = []
+    folders = ['pr']
+    site_files = []
     urls = []
     s3_client = boto3.client('s3')
     
     try:
         requests_session = requests.Session()
-        # response = requests_session.get(BLS_BASE_URL + bls_dirs[0] +'/')
-        # response = requests_session.get(BLS_BASE_URL + "bd" +'/')
-        response = requests_session.get(BLS_BASE_URL + "pr" +'/')
+        response = requests_session.get(BASE_URL + folders[0] +'/')
         if response.status_code == 200:
-            print(response.text) 
-            print("")
+            # print(response.text) 
             
             for html_element in response.text.split(' <A'):
-                # print(html_element)
                 html_elements.append(html_element)
                 if html_element.startswith(" HREF"):
-                    file_path = html_element[html_element.find("time.series/") + len("time.series/") : html_element.find('">')]
-                    file_paths.append(file_path)
-                    # print(file_path) 
-                    urls.append(BLS_BASE_URL + file_path)
-                    #  HREF="/pub/time.series/pr/pr.class">pr.class</A><br>
+                    site_file = html_element[html_element.find("time.series/") + len("time.series/") : html_element.find('">')]
+                    site_files.append(site_file)
+                    urls.append(BASE_URL + site_file)
                     
-            print("html_elements")        
-            pp.pprint(html_elements)
-            print("file_paths:")
-            pp.pprint(file_paths)
-            print("urls:")
-            pp.pprint(urls) 
-            print("len of file_paths:", len(file_paths))
+            # print("html_elements")        
+            # pp.pprint(html_elements)
+            # print("site_files:")
+            # pp.pprint(site_files)
+            print("\n")
+            # print("urls:")
+            # pp.pprint(urls)
+            print("\n")
+            # print("Number of site_files:", len(site_files))
             
         else:  
             return "Error when requesting page source"
             
     except Exception as e:
         traceback.print_exc()
-        # exception_message = "Error"
         logger.error(e)
         return e
          
@@ -70,28 +65,53 @@ def lambda_handler(event, context):
          Then iterate over each s3 file:
           if it doesn't exist on server, then remove it from s3 and delete the metadata.
         """
-    try:
-        for i in range(len(file_paths)):
-            file_key = file_paths[i]
-            file_url = urls[i]
-            response = s3_client.head_object(Bucket=rearc_bucket, Key=file_key)
-            print(file_key, response)
+        
+    # if 2-letter folder does not exist, then create it
+    if "Contents" not in s3_client.list_objects_v2(Bucket=REARC_BUCKET, Prefix=folders[0]).keys():
+        try:
+            s3_client.put_object(Bucket=REARC_BUCKET, Key=(folders[0] + '/'))
+            logger.warning("Folder %s does not exist in bucket %s, created it", folders[0], REARC_BUCKET)
+        except: 
+            logger.error("Unable to create folder %s in bucket", folders[0])
+    
+    # else, if 2-letter folder exists, then list its files
+    else: 
+        s3_files = s3_client.list_objects_v2(Bucket=REARC_BUCKET, Prefix=folders[0])['Contents']
+        s3_file_keys = []
+
+        for s3_file in s3_files:
+            s3_file_keys.append(s3_file['Key'])
+
+        logger.info("List files in bucket %s:", REARC_BUCKET)
+        # logger.info(s3_file_keys, "\n")
+    
+
+    # try:
+    # check which files from the site exist in the bucket
+    if len(s3_files) >= 1: 
+        for i in range(len(site_files)):
             
-    except Exception as e: #file doesn't exist
-        logger.error("file_key does not exist in bucket:")
-        
-        # download to memory
-        http = urllib3.PoolManager()
-        download_response = http.request("GET", file_url, decode_content=True)
-        print(file_key, file_url)
-        
-        if download_response.status == 200:
-            print("status:", download_response.status)
-            open("/tmp/" + file_key[file_key.find("/"):] , "wb").write(download_response.data)
-            lst = os.listdir("/tmp")
-            logger.info(f"Download file to /tmp: {lst}")
-        else: return "Something went wrong when downloading file to /tmp, response status: " + response.status
-        
+            if site_files[i] not in s3_files:
+            # response = s3_client.head_object(Bucket=REARC_BUCKET, Key=file_key)
+            # if s3_client.head_object(Bucket=REARC_BUCKET, Key=file_key).status >= 400:
+                # logger.info("Upload %s", site_files[i])
+            # print(file_key, response)
+            
+            # download to /tmp
+            http = urllib3.PoolManager()
+            download_response = http.request("GET", urls[i], decode_content=True)
+            logger.info("upload %s to bucket", urls[i])
+            
+            if download_response.status == 200:
+                # print("data", download_response.data)
+                logger.info("status: %s", download_response.status)
+                # open("/tmp/" + file_key[file_key.find("/"):] , "wb").write(download_response.data)
+                open("/tmp/" + site_files[i][site_files[i].find("/"):], "wb").write(download_response.data)
+                lst = os.listdir("/tmp")
+            else: 
+                logger.warning("Problem downloading %s, status code: %s", download_response.status)
+                
+        logger.info("Files downloaded to /tmp: %s", lst)
     
     
     return {
