@@ -1,40 +1,40 @@
-### 1/7/23
+###### 1/7/23
 
 - [ ] REMOVE EXTRANEOUS S3 FILES
 
-### 1/5/23
+###### 1/5/23
 
-Next: Fix logging issues. 
+- [ ] Fix logging issues. 
 
-Next: Improve the line if site_files[i] not in s3_file_keys: by sorting?
+- [ ] Improve the line if site_files[i] not in s3_file_keys: by sorting?
 
-Next: Debug indent error when uncommenting download section. DONE. 
+- [x] Debug indent error when uncommenting download section. DONE. 
 
-Next: Replace site_files[i][site_files[i].find with variable? 
+- [ ] Replace site_files[i][site_files[i].find with variable? 
 
-Next: Fix # upload from /tmp to s3 and update dynamodb metadata line placement so it downloads 
+- [x] Fix # upload from /tmp to s3 and update dynamodb metadata line placement so it downloads 
 appropriately. DONE. 
 
 
-### 1/1/23
+###### 1/1/23
 
-Next: Create DynamoDB metadata for files that don't exist in S3 bucket. DONE. 
+- [x] Create DynamoDB metadata for files that don't exist in S3 bucket. 
 
-Next: Add DynamoDB permissions. DONE. 
-
-
-### 12/31/22 
-
-Next: Upload files to S3 bucket. 
+- [x] Add DynamoDB permissions. 
 
 
-### 12/30/22 
+###### 12/31/22 
 
-Next: Download files to /tmp. DONE.
+- [x] Upload files to S3 bucket. 
 
 
-### 12/28/22 
+###### 12/30/22 
 
-Next: Replace print with logger.info 
+- [x] Download files to /tmp. 
 
-Next: implement sync
+
+###### 12/28/22 
+
+- [ ] Replace print with logger.info 
+
+- [ ] implement sync
