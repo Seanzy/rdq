@@ -139,18 +139,25 @@ def lambda_handler(event, context):
                 
 
                 # download to /tmp
-        #         http = urllib3.PoolManager()
-        #         download_response = http.request("GET", urls[i], decode_content=True)
-        #         logger.info("Upload %s to bucket", urls[i])
+                http = urllib3.PoolManager()
+                download_response = http.request("GET", urls[i], decode_content=True)
+                logger.info("Upload %s to bucket", urls[i])
                 
-        #         if download_response.status == 200:
-        #             # print("data", download_response.data)
-        #             logger.info("Status: %s", download_response.status)
-        #             # open("/tmp/" + file_key[file_key.find("/"):] , "wb").write(download_response.data)
-        #             open("/tmp/" + site_files[i][site_files[i].find("/"):], "wb").write(download_response.data)
-        #             lst = os.listdir("/tmp")
-        #         else: 
-        #             logger.warning("Problem downloading %s, status code: %s", download_response.status)
+                if download_response.status == 200:
+                    # print("data", download_response.data)
+                    logger.info("Status: %s", download_response.status)
+                    # open("/tmp/" + file_key[file_key.find("/"):] , "wb").write(download_response.data)
+                    open("/tmp/" + site_files[i][site_files[i].find("/"):], "wb").write(download_response.data)
+                    lst = os.listdir("/tmp")
+                    logger.info("Files downloaded to /tmp: %s", lst)
+                    
+                    # upload from /tmp to s3 and update dynamodb metadata 
+                    with open("/tmp/" + site_files[i][site_files[i].find("/"):], "rb") as f:
+                        s3_client.upload_fileobj(f, REARC_BUCKET, folders[0] + site_files[i][site_files[i].find("/"):] )
+                        logger.info("File uploaded to bucket")
+                        rearc_table.put_item(Item=item)
+                    # else: 
+                    #     logger.warning("Problem downloading %s, status code: %s", download_response.status)
                 
         # logger.info("Files downloaded to /tmp: %s", lst)
         

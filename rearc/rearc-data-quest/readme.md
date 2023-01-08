@@ -1,5 +1,7 @@
 1/5/23
 
+Next: Debug indent error when uncommenting donwload section.
+
 Next: Replace site_files[i][site_files[i].find with variable? 
 
 Next: Fix # upload from /tmp to s3 and update dynamodb metadata line placement so it downloads 
