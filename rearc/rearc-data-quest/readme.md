@@ -1,5 +1,7 @@
 1/5/23
 
+Next: Fix logging issues. DONE. (It resolved on its own?!)
+
 Next: Improve the line if site_files[i] not in s3_file_keys: by sorting?
 
 Next: Debug indent error when uncommenting donwload section.

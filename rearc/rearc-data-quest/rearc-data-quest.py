@@ -5,7 +5,7 @@ import os
 import traceback
 import urllib3
 import requests
-# import pprint as pp
+import pprint as pp
 from requests.adapters import HTTPAdapter, Retry
 
 logger = logging.getLogger()
@@ -26,10 +26,11 @@ def lambda_handler(event, context):
     REARC_BUCKET = os.getenv("REARC_BUCKET")
     REARC_TABLE = os.getenv("REARC_TABLE")
     
-    folders = ['pr']
+    folders = ['eb']
     site_files = []
     urls = [] 
     file_metadata = []
+    s3_file_keys = []
     
     try:
         # Parse page source for filenames and their metadata 
@@ -52,11 +53,19 @@ def lambda_handler(event, context):
         else:  
             return "Error when requesting page source"
 
-        # logger.info("site_files: %s", site_files)
-        # logger.info("urls: %s", urls)
-        # logger.info("Number of site_files: %s", len(site_files))
-        # logger.info("file_metadata: %s", file_metadata)
-        # logger.info("Length of file_metadata: %s", len(file_metadata))
+        # print("site_files:")
+        # pp.pprint(site_files)
+        logger.info("site_files: %s", site_files)
+        logger.info("Number of site_files: %s", len(site_files))
+
+        # print("urls:")
+        # pp.pprint(urls)
+        logger.info("urls: %s", urls)
+        
+        # print("file_metadata:")
+        # pp.pprint(file_metadata)
+        logger.info("file_metadata: %s", file_metadata)
+        logger.info("Length of file_metadata: %s", len(file_metadata)) 
         # print(response.text)
             
     except Exception as e:
@@ -80,20 +89,21 @@ def lambda_handler(event, context):
             s3_client.put_object(Bucket=REARC_BUCKET, Key=(folders[0] + '/'))
             logger.warning("Folder %s does not exist in bucket %s, created it", folders[0], REARC_BUCKET)
             s3_files = []
+            # s3_file_keys = []
         except: 
             logger.error("Unable to create folder %s in bucket", folders[0])
     
     # else, if 2-letter folder exists, then list its files
     else: 
         s3_files = s3_client.list_objects_v2(Bucket=REARC_BUCKET, Prefix=folders[0])['Contents']
-        s3_file_keys = []
+        # s3_file_keys = []
 
         for s3_file in s3_files:
             s3_file_keys.append(s3_file['Key'])
 
-        logger.info("List files in bucket %s, folder %s:", REARC_BUCKET, folders[0])
-        logger.info("s3_files: %s", s3_files)
-        logger.info("s3_file_keys: %s", s3_file_keys)
+        logger.info("List files in S3 bucket %s, folder %s: %s", REARC_BUCKET, folders[0], s3_file_keys)
+        # logger.info("s3_files: %s", s3_files)
+        # logger.info("s3_file_keys: %s", s3_file_keys)
     
 
     # check which files from the site exist in the bucket, if it doesn't, then download it to /tmp
@@ -120,7 +130,7 @@ def lambda_handler(event, context):
                 
                 if download_response.status == 200:
                     # print("data", download_response.data)
-                    logger.info("Status: %s", download_response.status)
+                    # logger.info("Status: %s", download_response.status)
                     open("/tmp/" + site_files[i][site_files[i].find("/"):], "wb").write(download_response.data)
                     lst = os.listdir("/tmp")
                     logger.info("Files downloaded to /tmp: %s", lst)
@@ -128,7 +138,7 @@ def lambda_handler(event, context):
                     # upload from /tmp to s3 and update dynamodb metadata 
                     with open("/tmp/" + site_files[i][site_files[i].find("/"):], "rb") as f:
                         s3_client.upload_fileobj(f, REARC_BUCKET, folders[0] + site_files[i][site_files[i].find("/"):] )
-                        logger.info("File uploaded to bucket")
+                        # logger.info("File uploaded to bucket")
                         rearc_table.put_item(Item=item)
                     # else: 
                     #     logger.warning("Problem downloading %s, status code: %s", download_response.status)
@@ -138,6 +148,8 @@ def lambda_handler(event, context):
     
         # Else if website file (source) exists in S3, then check if source metadata differs from S3 file metadata in DynamoDB and reupload source to S3 if it does
             else: 
+                uploaded_files = []
+                
                 source = {
                     'dir':folders[0], 
                     'file':site_files[i], 
@@ -153,7 +165,6 @@ def lambda_handler(event, context):
                 # # logger.info("Compare source and S3 file metadata")
                 
                 if source['date'] != s3_metadata['date'] or source['time'] != s3_metadata['time'] or source['size(bytes)'] != s3_metadata['size(bytes)']:
-                    logger.info("GOT HERE")
                     
                     # download to source to /tmp then upload to S3
                     http = urllib3.PoolManager()
@@ -163,21 +174,21 @@ def lambda_handler(event, context):
                     
                     if download_response.status == 200:
                         # print("data", download_response.data)
-                        logger.info("status: %s", download_response.status)
+                        # logger.info("status: %s", download_response.status)
                         # print(site_files[i][site_files[i].find("/") + 1 :])
                         open("/tmp/" + site_files[i][site_files[i].find("/") :], "wb").write(download_response.data)
                         lst = os.listdir("/tmp")
                         logger.info("Files downloaded to /tmp: %s", lst)    
                         
-                        with open("/tmp" + site_files[i][site_files[i].find("/"):], "rb") as f:
+                        with open("/tmp" + site_files[i][site_files[i].find("/") :], "rb") as f:
                             s3_client.upload_fileobj(f, REARC_BUCKET, folders[0] + site_files[i][site_files[i].find("/"):] )
-                            logger.info("%s uploaded to bucket", site_files[i][site_files[i].find("/") + 1 :])
+                            # logger.info("%s uploaded to bucket", site_files[i][site_files[i].find("/") + 1 :])
                             rearc_table.put_item(Item=source)
                     else: 
                         logger.warning("Problem downloading %s, status code: %s", download_response.status)
                         lst = os.listdir("/tmp")
                         logger.info("Files downloaded to /tmp: %s", lst)    
-                        
+                
                 # upload from /tmp to s3 and update dynamodb metadata 
                 
         # Check for files in S3 not on the website and remove them from S3. 
