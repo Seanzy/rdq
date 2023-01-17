@@ -31,6 +31,7 @@ def lambda_handler(event, context):
     urls = [] 
     file_metadata = []
     s3_file_keys = []
+    uploaded_to_s3 = []
     
     try:
         # Parse page source for filenames and their metadata 
@@ -136,6 +137,7 @@ def lambda_handler(event, context):
                     # Upload from /tmp to s3 and update dynamodb metadata 
                     with open("/tmp/" + site_file_key, "rb") as f:
                         s3_client.upload_fileobj(f, REARC_BUCKET, folders[0] + site_file_key )
+                        uploaded_to_s3.append(site_file_key)
                         logger.info("Upload %s to bucket", urls[i])
                         rearc_table.put_item(Item=item)
                 else: 
@@ -174,11 +176,15 @@ def lambda_handler(event, context):
                         with open("/tmp" + site_files[i][site_files[i].find("/") :], "rb") as f:
                             s3_client.upload_fileobj(f, REARC_BUCKET, folders[0] + site_file_key )
                             rearc_table.put_item(Item=source)
+                            uploaded_to_s3.append(site_file_key)
+                        
                     else: 
                         logger.warning("Problem downloading %s, status code: %s", download_response.status)
                         lst = os.listdir("/tmp")
                         logger.info("Files downloaded to /tmp: %s", lst)    
                  
+        logger.info("Files uploaded to S3: %s", uploaded_to_s3)
+                        
     # Check for files in S3 not on the website and remove them from S3
     s3_files_to_be_synced = s3_client.list_objects_v2(Bucket=REARC_BUCKET, Prefix=folders[0])['Contents']
     

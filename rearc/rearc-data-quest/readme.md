@@ -1,5 +1,7 @@
 #### 1/16/23
 
+Next: Add uploaded_to_s3 variable. 
+
 Test cases: 
 
 - [x] File missing from S3 bucket that is on the site. File should be downloaded to bucket. 
