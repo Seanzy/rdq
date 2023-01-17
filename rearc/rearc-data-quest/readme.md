@@ -1,10 +1,12 @@
 #### 1/16/23
 
+- [X] List S3 bucket contents after upload. 
+
 - [X] PASS PART 2.2
 
 - [X] PASS PART 2.1
 
-- [] Validate API data on underlying census site 
+- [ ] Validate API data on underlying census site 
 
 - [x] Add uploaded_to_s3 variable. 
 

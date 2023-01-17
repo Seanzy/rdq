@@ -214,7 +214,6 @@ def lambda_handler(event, context):
         logger.error(e)
         return e
     
-    # Write api data to /tmp
     if api_response.status == 200:
         try:
             logger.info("WRITE %s to /tmp", api_file_key)
@@ -225,7 +224,6 @@ def lambda_handler(event, context):
             logger.error(e)
             return e
 
-    # Upload from /tmp to S3 
     if len(lst):
         logger.info("LIST files in /tmp: %s", lst)
         try:         
@@ -237,7 +235,7 @@ def lambda_handler(event, context):
             logger.error(e)
             return e
 
-    logger.info("LIST %s bucket contents: %s", REARC_BUCKET, s3_client.list_objects_v2(Bucket=REARC_BUCKET, Prefix=folders[1]))
+        logger.info("LIST %s bucket contents: %s", REARC_BUCKET, s3_client.list_objects_v2(Bucket=REARC_BUCKET, Prefix=folders[1])['Contents'][1])
     
     return {
         'statusCode': 200,
