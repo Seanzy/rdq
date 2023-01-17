@@ -26,7 +26,7 @@ def lambda_handler(event, context):
     REARC_BUCKET = os.getenv("REARC_BUCKET")
     REARC_TABLE = os.getenv("REARC_TABLE")
     
-    folders = ['eb']
+    folders = ['pr']
     site_files = []
     urls = [] 
     file_metadata = []
@@ -52,7 +52,7 @@ def lambda_handler(event, context):
                     urls.append(BASE_URL + site_file)
         else:  
             return "Error when requesting page source"
-
+        
         # print("site_files:")
         # pp.pprint(site_files)
         logger.info("site_files: %s", site_files)
@@ -64,6 +64,9 @@ def lambda_handler(event, context):
         
         # print("file_metadata:")
         # pp.pprint(file_metadata)
+        
+        # logger.info("Remove extraneous list item from file_metadata: %s", file_metadata.pop())
+        file_metadata.pop()
         logger.info("file_metadata: %s", file_metadata)
         logger.info("Length of file_metadata: %s", len(file_metadata)) 
         # print(response.text)
@@ -170,7 +173,6 @@ def lambda_handler(event, context):
                         
                         with open("/tmp" + site_files[i][site_files[i].find("/") :], "rb") as f:
                             s3_client.upload_fileobj(f, REARC_BUCKET, folders[0] + site_file_key )
-                            # logger.info("%s uploaded to bucket", site_files[i][site_files[i].find("/") + 1 :])
                             rearc_table.put_item(Item=source)
                     else: 
                         logger.warning("Problem downloading %s, status code: %s", download_response.status)
@@ -185,7 +187,8 @@ def lambda_handler(event, context):
             continue
         
         if file_to_be_synced['Key'] not in site_files:
-            logger.info("Remove %s from S3 bucket to sync with source", file_to_be_synced)
+            logger.info("Remove %s from S3 bucket to sync with source", file_to_be_synced['Key'])
+            logger.info("Removed file details: %s", file_to_be_synced)
             delete_response = s3_client.delete_object(Bucket=REARC_BUCKET, Key=file_to_be_synced['Key'])
     
     return {
