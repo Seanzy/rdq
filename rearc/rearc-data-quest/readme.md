@@ -1,6 +1,18 @@
+#### 1/16/23
+
+Test cases: 
+
+- [x] File missing from S3 bucket that is on the site. File should be downloaded to bucket. 
+
+- [x] Extra file in S3 bucket that is not on the site. File should be removed from bucket. 
+
+- [x] File in S3 bucket with metadata different than on site, metadata should be updated and file downloaded to bucket and old file removed. 
+
 #### 1/7/23
 
-- [x] REMOVE EXTRANEOUS S3 FILES
+- [x] Modify GetAccountSettings and other IAM policies for Rearc.
+
+- [x] REMOVE EXTRANEOUS S3 FILES.
 
 #### 1/5/23
 
