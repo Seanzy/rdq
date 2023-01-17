@@ -1,6 +1,8 @@
 #### 1/16/23
 
-- [] PASS PART 2
+- [X] PASS PART 2.2
+
+- [X] PASS PART 2.1
 
 - [] Validate API data on underlying census site 
 
