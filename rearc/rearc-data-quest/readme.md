@@ -1,3 +1,7 @@
+#### 1/17/23
+
+- [x] Load Part 1 and Part 2 as dataframes.
+
 #### 1/16/23
 
 - [X] List S3 bucket contents after upload. 
