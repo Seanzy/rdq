@@ -1,3 +1,7 @@
+#### 1/21/23
+
+- [x] 3.1 Generate population stats
+
 #### 1/17/23
 
 - [x] Load Part 1 and Part 2 as dataframes.
