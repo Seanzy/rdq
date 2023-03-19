@@ -1,3 +1,6 @@
+#### 3/18/23 
+- [X] Finish code. 
+
 #### 2/26/23
 - [x] Replace "arn:aws:dynamodb:us-east-1:169938143887:table/rearc-data-quest" with ref:
 
