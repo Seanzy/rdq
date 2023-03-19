@@ -1,0 +1,63 @@
+{
+    "Statement": [
+        {
+            "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:DeleteObject",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::rearc-data-quest",
+                "arn:aws:s3:::rearc-data-quest/*"
+            ],
+            "Effect": "Allow"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "dynamodb:ListTables",
+            "Resource": "*"
+        },
+        {
+            "Action": [
+                "dynamodb:PutItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:GetItem",
+                "dynamodb:UpdateItem",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::*",
+                "arn:aws:dynamodb:us-east-1:169938143887:table/rdq-nprd-Assessment-SeanGurson-DynamoTable-us-east-1"
+            ],
+            "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
+        },
+        {
+            "Action": "lambda:InvokeFunction",
+            "Resource": "*",
+            "Effect": "Allow"
+        }
+    ]
+}
+
+
+
+
+        "RearcDataQuestLambdaResourcePolicy": {
+            "DependsOn": ["RearcDataQuestLambdaFunction"],
+            "Type": "AWS::Lambda:Permission",
+            "Properties": {
+                "FunctionName": {"Ref": "RearcDataQuestLambdaFunction"},
+                "Action": "lambda:InvokeFunction",
+                "Principal": "events.amazonaws.com", 
+            }
+        },
