@@ -1,0 +1,142 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+
+    "Description": "Rearc Data Quest",
+
+    "Parameters": { 
+        "Environment": {
+            "Description": "Environment to deploy in", 
+            "Type": "String",
+            "Default": "nprd"
+        },
+        "SourceCodeBucket": {
+            "Description": "Bucket for lambda function code", 
+            "Type": "String",
+            "Default": "seanzy-code-source-bucket"
+        },
+        "ApiUrl": {
+            "Description": "Part 2 API URL",
+            "Type": "String",
+            "Default": "https://datausa.io/api/data?drilldowns=Nation&measures=Population"
+        },
+        "BaseUrl": {
+            "Description": "Part 1 API URL",
+            "Type": "String",
+            "Default": "https://download.bls.gov/pub/time.series/"
+        },
+        "RearcBucket": {
+            "Description": "Bucket that contains files synced from the BASE_URL website",
+            "Type": "String",
+            "Default": "rearc-data-quest"
+        },
+        "RearcTable": {
+            "Description": "DynamoDB table that contains metadata of files synced from BASE_URL website",
+            "Type": "String",
+            "Default": "rearc-data-quest"
+        },
+        "LambdaLayers": {
+            "Description": "The list of LambdaLayerIds available",
+            "Type": "CommaDelimitedList",
+            "Default": "arn:aws:lambda:us-east-1:169938143887:layer:requests:1"
+        }
+    },
+
+    "Resources": {
+        "RearcDataQuestLambdaFunction": {
+            "Type" : "AWS::Lambda::Function",
+            "Properties" : {
+                "Code": {
+                    "S3Bucket": {"Ref": "SourceCodeBucket"},
+                    "S3Key": "rearc-data-quest.zip"
+                },
+                "Description" : "RDQ",
+                "EphemeralStorage" : {
+                    "Size": 1024
+                },
+                "Handler": "lambda_function.lambda_handler",
+                "Runtime": "python3.9",
+                "FunctionName" : "sean1",
+                "Role" : {"Fn::GetAtt": ["RearcDataQuestLambdaIAMRole", "Arn"]},
+                "Layers": {"Ref": "LambdaLayers"}
+            }
+        },
+
+        "RearcDataQuestLambdaIAMRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "RoleName": "rdq-role",
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "lambda.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+
+        "RearcDataQuestLambdaIAMPolicy": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": "rdq-policy",
+                "PolicyDocument": {
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": 
+                            [
+                                "s3:GetObject"
+                            ],
+                            "Resource": [
+                                {"Fn::Sub": "arn:aws:s3:::${RearcBucket}"},
+                                {"Fn::Sub": "arn:aws:s3:::${RearcBucket}/*"}
+                            ]
+                        }
+                    ]
+                },
+                "Roles": [ {"Ref": "RearcDataQuestLambdaIAMRole"}]
+            }
+        },
+        
+        "RearcDataQuestLambdaLayer": {
+            "Type": "AWS::Lambda::LayerVersion",
+            "Properties": {
+                "CompatibleArchitectures": ["x86_64"],
+                "CompatibleRuntimes": ["python3.9"],
+                "Content": {
+                    "S3Bucket": {"Ref": "SourceCodeBucket"},
+                    "S3Key": "requests/python.zip"
+                },
+                "Description": "Requests layer for lambda functions",
+                "LayerName": "requests-layer"
+            }
+        },
+
+        "RearcDataQuestLambdaPermission": {
+            "Type": "AWS::Lambda::LayerVersionPermission",
+            "Properties": {
+                "Action": "lambda:GetLayerVersion",
+                "LayerVersionArn": {"Ref": "RearcDataQuestLambdaLayer"},
+                "Principal": "*"
+            }
+        }
+        
+    }
+}
+
+ 
+
+
+
+
+
+

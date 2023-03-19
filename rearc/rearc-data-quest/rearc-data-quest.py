@@ -4,9 +4,17 @@ import boto3
 import os
 import traceback
 import urllib3
-import requests
-# import pprint as pp
+import math 
+from io import StringIO
+import pprint as pp
 # from requests.adapters import HTTPAdapter, Retry
+
+# LAMBDA LAYER LIBRARIES:
+import requests
+import pandas as pd
+# from pyspark.sql.functions import trim
+
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -17,22 +25,24 @@ def lambda_handler(event, context):
     logger.info(event)
     
     # PART 1
-    # http = urllib3.PoolManager()
+    http = urllib3.PoolManager()
     
     s3_client = boto3.client('s3')
-    # dynamodb_client = boto3.client('dynamodb')
-    # rearc_table = boto3.resource("dynamodb").Table(os.getenv("REARC_TABLE"))
+    dynamodb_client = boto3.client('dynamodb')
+    rearc_table = boto3.resource("dynamodb").Table(os.getenv("REARC_TABLE"))
     
-    # BASE_URL = os.getenv("BASE_URL")
+    BASE_URL = os.getenv("BASE_URL")
+    CSV_URL = os.getenv("CSV_URL")
+    API_URL = "https://datausa.io/api/data?drilldowns=Nation&measures=Population"
     REARC_BUCKET = os.getenv("REARC_BUCKET")
-    # REARC_TABLE = os.getenv("REARC_TABLE")
+    REARC_TABLE = os.getenv("REARC_TABLE")
     
     folders = ['pr', 'api']
-    # site_files = []
-    # urls = [] 
-    # file_metadata = []
-    # s3_file_keys = []
-    # uploaded_to_s3 = []
+    site_files = []
+    urls = [] 
+    file_metadata = []
+    s3_file_keys = []
+    uploaded_to_s3 = []
     
     # try:
     #     # Parse page source for filenames and their metadata 
@@ -203,7 +213,7 @@ def lambda_handler(event, context):
     s3_client_api = boto3.client('s3')
     API_URL = os.getenv("API_URL")
     api_file_key = "api_data.json"
-    
+
     
     logger.info("FETCH API data from %s", API_URL)
     try:
@@ -224,18 +234,47 @@ def lambda_handler(event, context):
             logger.error(e)
             return e
 
-    if len(lst):
-        logger.info("LIST files in /tmp: %s", lst)
-        try:         
-            with open("/tmp/" + api_file_key, "rb") as f:
-                s3_client.upload_fileobj(f, REARC_BUCKET, folders[1] + "/" + api_file_key)
-                logger.info("UPLOAD %s/api/%s", REARC_BUCKET, api_file_key)
-        except Exception as e:
-            traceback.print_exc(e)
-            logger.error(e)
-            return e
+    # if len(lst):
+    #     logger.info("LIST files in /tmp: %s", lst)
+    #     try:         
+    #         with open("/tmp/" + api_file_key, "rb") as f:
+    #             s3_client.upload_fileobj(f, REARC_BUCKET, folders[1] + "/" + api_file_key)
+    #             logger.info("UPLOAD %s/api/%s", REARC_BUCKET, api_file_key)
+    #     except Exception as e:
+    #         traceback.print_exc(e)
+    #         logger.error(e)
+    #         return e
 
-        logger.info("LIST %s bucket contents: %s", REARC_BUCKET, s3_client.list_objects_v2(Bucket=REARC_BUCKET, Prefix=folders[1])['Contents'][1])
+    #     logger.info("LIST %s bucket contents: %s", REARC_BUCKET, s3_client.list_objects_v2(Bucket=REARC_BUCKET, Prefix=folders[1])['Contents'][1])
+    
+    
+    # PART 3
+    # 3.0: LOAD PART 1 AND PART 2 AS DATAFRAMES (df_1 and df_2)
+    # df_1: 
+    csv_file_key = "pr.data.0.Current"
+    object_key = folders[0] + "/" + csv_file_key
+
+    csv_response = http.request('GET', CSV_URL, decode_content=True)
+    open("/tmp/" + csv_file_key, "wb").write(csv_response.data)
+    
+    lst = os.listdir("/tmp")
+    logger.info("List files in /tmp: %s", lst)
+
+    # remove tabs
+    file_headers = [ "series_id", "year", "period", "value", "footnote_codes" ]
+    df_1 = pd.read_csv("/tmp/" + csv_file_key, sep='\t', skiprows=(1), names=file_headers)
+    
+    print(df_1)
+    
+    
+    # df_2:
+    dict_2 = json.loads(api_response.data)
+    df_2 = pd.DataFrame(dict_2['data'])
+    print(df_2)
+    
+    # 3.1: 
+    
+    
     
     return {
         'statusCode': 200,

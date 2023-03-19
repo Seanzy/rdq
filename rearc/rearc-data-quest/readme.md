@@ -1,3 +1,6 @@
+#### 2/26/23
+- [x] Replace "arn:aws:dynamodb:us-east-1:169938143887:table/rearc-data-quest" with ref:
+
 #### 1/21/23
 
 - [x] 3.1 Generate population stats
