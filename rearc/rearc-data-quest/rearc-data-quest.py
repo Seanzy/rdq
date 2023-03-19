@@ -33,7 +33,7 @@ def lambda_handler(event, context):
     
     BASE_URL = os.getenv("BASE_URL")
     CSV_URL = os.getenv("CSV_URL")
-    API_URL = "https://datausa.io/api/data?drilldowns=Nation&measures=Population"
+    API_URL = os.getenv("API_URL")
     REARC_BUCKET = os.getenv("REARC_BUCKET")
     REARC_TABLE = os.getenv("REARC_TABLE")
     
