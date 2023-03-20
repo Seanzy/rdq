@@ -26,8 +26,7 @@
         },
         "RearcBucket": {
             "Description": "Bucket that contains files synced from the BASE_URL website",
-            "Type": "String",
-            "Default": "rearc-data-quest-assessment"
+            "Type": "String"
         }
 
     },
@@ -37,7 +36,7 @@
 
             "Type" : "AWS::S3::Bucket",
             "Properties" : {
-                "BucketName" : {"Ref": "RearcBucket"},
+                "BucketName" : {"Fn::Sub": "${AWS::StackName}-rearc-data-quest-assessment"}
               }
         },
           
@@ -67,7 +66,10 @@
                 "MemorySize": 512,
                 "FunctionName" : {"Fn::Sub": "rdq-${Environment}-${AWS::StackName}-LambdaFunction-${AWS::Region}"},
                 "Role" : {"Fn::GetAtt": ["RearcDataQuestLambdaIAMRole", "Arn"]},
-                "Layers": [{"Ref": "RearcDataQuestLambdaLayer"}]
+                "Layers": [
+                    {"Ref": "RearcDataQuestLambdaLayer"},
+                    "arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python39:4"
+                ]
             }
         },
 
@@ -151,7 +153,7 @@
                     "S3Key": "layers/requests/python.zip"
                 },
                 "Description": "Requests layer for lambda functions",
-                "LayerName": "requests-layer"
+                "LayerName": "requests-layer-assessment"
             }
         },
 
@@ -160,7 +162,7 @@
             "Properties": {
                 "Action": "lambda:GetLayerVersion",
                 "LayerVersionArn": {"Ref": "RearcDataQuestLambdaLayer"},
-                "Principal": "*"
+                "Principal": {"Ref": "AWS::AccountId"}
             }
         },
         
@@ -219,11 +221,3 @@
 
     }
 }
-
- 
-
-
-
-
-
-
