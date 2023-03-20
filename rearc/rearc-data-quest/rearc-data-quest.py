@@ -32,7 +32,6 @@ def lambda_handler(event, context):
     rearc_table = boto3.resource("dynamodb").Table(os.getenv("REARC_TABLE"))
     
     BASE_URL = os.getenv("BASE_URL")
-    CSV_URL = os.getenv("CSV_URL")
     API_URL = os.getenv("API_URL")
     REARC_BUCKET = os.getenv("REARC_BUCKET")
     REARC_TABLE = os.getenv("REARC_TABLE")
@@ -43,6 +42,7 @@ def lambda_handler(event, context):
     file_metadata = []
     s3_file_keys = []
     uploaded_to_s3 = []
+    
     
     try:
         # Parse page source for filenames and their metadata 
@@ -245,7 +245,7 @@ def lambda_handler(event, context):
             logger.error(e)
             return e
 
-        logger.info("LIST %s bucket contents: %s", REARC_BUCKET, s3_client.list_objects_v2(Bucket=REARC_BUCKET, Prefix=folders[1])['Contents'][1])
+        # logger.info("LIST %s bucket contents: %s", REARC_BUCKET, s3_client.list_objects_v2(Bucket=REARC_BUCKET, Prefix=folders[1])['Contents'][0])
     
     
     # PART 3
@@ -253,8 +253,9 @@ def lambda_handler(event, context):
     # df_1: 
     csv_file_key = "pr.data.0.Current"
     object_key = folders[0] + "/" + csv_file_key
-
-    csv_response = http.request('GET', CSV_URL, decode_content=True)
+    csv_url = BASE_URL + object_key
+    
+    csv_response = http.request('GET', csv_url, decode_content=True)
     open("/tmp/" + csv_file_key, "wb").write(csv_response.data)
     
     lst = os.listdir("/tmp")
