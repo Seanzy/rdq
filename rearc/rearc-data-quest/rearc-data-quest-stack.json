@@ -52,7 +52,7 @@
                     "Variables": {
                         "API_URL": "https://datausa.io/api/data?drilldowns=Nation&measures=Population",
                         "BASE_URL": "https://download.bls.gov/pub/time.series/",
-                        "REARC_BUCKET": "rearc-data-quest",
+                        "REARC_BUCKET": {"Fn::Sub": "${AWS::StackName}-rearc-data-quest-assessment"},
                         "REARC_TABLE": {"Ref": "RearcDataQuestDynamoTable"}
                     }
                 },
