@@ -1,8 +1,11 @@
-#### 3/18/23 
-- [X] Finish code. 
+#### 4/3/23 
+- [x] Finish code including SQS. 
+
+#### 3/20/23 
+- [x] Create Requests layer and use managed Pandas layer. 
 
 #### 2/26/23
-- [x] Replace "arn:aws:dynamodb:us-east-1:169938143887:table/rearc-data-quest" with ref:
+- [x] Replace "arn:aws:dynamodb:us-east-1:acct num:table/rearc-data-quest" with ref:
 
 #### 1/21/23
 
@@ -14,11 +17,11 @@
 
 #### 1/16/23
 
-- [X] List S3 bucket contents after upload. 
+- [x] List S3 bucket contents after upload. 
 
-- [X] PASS PART 2.2
+- [x] PASS PART 2.2
 
-- [X] PASS PART 2.1
+- [x] PASS PART 2.1
 
 - [ ] Validate API data on underlying census site 
 

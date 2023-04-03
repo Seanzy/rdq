@@ -39,6 +39,61 @@
                 "BucketName" : {"Fn::Sub": "${AWS::StackName}-rearc-data-quest-assessment"}
               }
         },
+
+        "RearcDataQuestS3BucketPolicy": {
+            "Type" : "AWS::S3::BucketPolicy",
+            "Properties" : {
+                "Bucket" : {
+                    "Ref": "RearcS3Bucket"
+                },
+                "PolicyDocument" : {
+
+                    "Principal": {
+                        "Ref": "AWS::AccountId"
+                    },
+                    "Statement": [
+                        {
+
+                            "Action": [
+                                "s3:PutObject",
+                                "s3:GetObject",
+                                "s3:DeleteObject",
+                                "s3:ListBucket"
+                            ],
+                            "Resource": [
+                                {"Fn::Sub": "arn:aws:s3:::${AWS::StackName}-rearc-data-quest-assessment"},
+                                {"Fn::Sub": "arn:aws:s3:::${AWS::StackName}-rearc-data-quest-assessment/*"}
+                            ],
+                            "Effect": "Allow"
+                        },
+                        {
+
+                            "Action": [
+                                "dynamodb:PutItem",
+                                "dynamodb:DeleteItem",
+                                "dynamodb:GetItem",
+                                "dynamodb:UpdateItem",
+                                "dynamodb:ListTables"
+                            ],
+                            "Resource": {"Fn::Sub": "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/rdq-${Environment}-${AWS::StackName}-DynamoTable-${AWS::Region}"},
+                            "Effect": "Allow"
+                        },
+                        {
+                            "Principal": {
+                                "Ref": "AWS::AccountId"
+                            },
+                            "Action": [
+                                "logs:CreateLogGroup",
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents"
+                            ],
+                            "Resource": "*",
+                            "Effect": "Allow"
+                        }
+                    ]
+                }
+              }
+        },
           
         "RearcDataQuestLambdaFunction": {
             "Type" : "AWS::Lambda::Function",
@@ -197,7 +252,7 @@
             "DependsOn": ["RearcDataQuestLambdaFunction"],
             "Properties": {
                 "Description": {"Fn::Sub": "Trigger for Rearc Daily Quest lambda function"},
-                "ScheduleExpression": "rate(1 minute)",
+                "ScheduleExpression": "cron(15 12 * * ? *)",
                 "State": "DISABLED",
                 "Targets": [
                     {

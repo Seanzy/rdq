@@ -7,7 +7,8 @@ import urllib3
 import math 
 from io import StringIO
 import pprint as pp
-# from requests.adapters import HTTPAdapter, Retry
+from botocore.exceptions import ClientError
+from datetime import datetime, timezone
 
 # LAMBDA LAYER LIBRARIES:
 import requests
@@ -18,23 +19,28 @@ import pandas as pd
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s: %(message)s')
 
 def lambda_handler(event, context): 
     
-    # print(event)
+    print(event)
     logger.info(event)
     
     # PART 1
     http = urllib3.PoolManager()
     
+    BASE_URL = os.getenv('BASE_URL')
+    CSV_URL = os.getenv('CSV_URL')
+    API_URL = os.getenv('API_URL')
+    REARC_BUCKET = os.getenv('REARC_BUCKET')
+    REARC_TABLE = os.getenv('REARC_TABLE')
+    AWS_REGION = os.getenv('AWS_REGION')
+    QUEUE_URL = os.getenv('QUEUE_URL')
+
     s3_client = boto3.client('s3')
+    sqs_client = boto3.client('sqs', region_name=AWS_REGION)
     dynamodb_client = boto3.client('dynamodb')
-    rearc_table = boto3.resource("dynamodb").Table(os.getenv("REARC_TABLE"))
-    
-    BASE_URL = os.getenv("BASE_URL")
-    API_URL = os.getenv("API_URL")
-    REARC_BUCKET = os.getenv("REARC_BUCKET")
-    REARC_TABLE = os.getenv("REARC_TABLE")
+    rearc_table = boto3.resource('dynamodb').Table(os.getenv('REARC_TABLE'))
     
     folders = ['pr', 'api']
     site_files = []
@@ -43,7 +49,10 @@ def lambda_handler(event, context):
     s3_file_keys = []
     uploaded_to_s3 = []
     
-    
+    msg_attributes = {}
+    msg_body = ''
+
+
     try:
         # Parse page source for filenames and their metadata 
         requests_session = requests.Session()
@@ -67,7 +76,7 @@ def lambda_handler(event, context):
         
         # print("site_files:")
         # pp.pprint(site_files)
-        logger.info("site_files: %s", site_files)
+        # logger.info("site_files: %s", site_files)
         logger.info("Number of site_files: %s", len(site_files))
 
         # print("urls:")
@@ -79,8 +88,8 @@ def lambda_handler(event, context):
         
         # logger.info("Remove extraneous list item from file_metadata: %s", file_metadata.pop())
         file_metadata.pop()
-        logger.info("file_metadata: %s", file_metadata)
-        logger.info("Length of file_metadata: %s", len(file_metadata)) 
+        # logger.info("file_metadata: %s", file_metadata)
+        # logger.info("Length of file_metadata: %s", len(file_metadata)) 
         # print(response.text)
             
     except Exception as e:
@@ -116,7 +125,7 @@ def lambda_handler(event, context):
         for s3_file in s3_files:
             s3_file_keys.append(s3_file['Key'])
 
-        logger.info("List files in S3 bucket %s, folder %s: %s", REARC_BUCKET, folders[0], s3_file_keys)
+        logger.info("LIST files in S3 bucket %s, folder %s: %s", REARC_BUCKET, folders[0], s3_file_keys)
 
 
     # Check which files from source site do not exist in S3 bucket and download them to /tmp
@@ -151,6 +160,9 @@ def lambda_handler(event, context):
                         uploaded_to_s3.append(site_file_key)
                         logger.info("Upload %s to bucket", urls[i])
                         rearc_table.put_item(Item=item)
+                        # send_queue_message(QUEUE_URL, msg_attributes, msg_body)
+                        # logger.info("SQS message: %s", receive_queue_message(QUEUE_URL))
+                
                 else: 
                     logger.warning("Problem downloading %s, status code: %s", site_file_key, download_response.status)
                 
@@ -194,11 +206,13 @@ def lambda_handler(event, context):
                         lst = os.listdir("/tmp")
                         logger.info("Files downloaded to /tmp: %s", lst)    
                  
-        logger.info("Files uploaded to S3: %s", uploaded_to_s3)
+        # this logger.infodoesn't show all the files uploaded  
+        # logger.info("Files uploaded to S3: %s", uploaded_to_s3)
                         
     # Check for files in S3 not on the website and remove them from S3
     s3_files_to_be_synced = s3_client.list_objects_v2(Bucket=REARC_BUCKET, Prefix=folders[0])['Contents']
     
+    # try:
     for file_to_be_synced in s3_files_to_be_synced:
         if file_to_be_synced['Key'] == folders[0] + "/":
             continue
@@ -207,6 +221,10 @@ def lambda_handler(event, context):
             logger.info("Remove %s from S3 bucket to sync with source", file_to_be_synced['Key'])
             logger.info("Removed file details: %s", file_to_be_synced)
             delete_response = s3_client.delete_object(Bucket=REARC_BUCKET, Key=file_to_be_synced['Key'])
+            
+        else:
+            logger.error("Exiting loop")
+            break
     
     # PART 2
     http_api = urllib3.PoolManager()
@@ -245,7 +263,7 @@ def lambda_handler(event, context):
             logger.error(e)
             return e
 
-        # logger.info("LIST %s bucket contents: %s", REARC_BUCKET, s3_client.list_objects_v2(Bucket=REARC_BUCKET, Prefix=folders[1])['Contents'][0])
+        logger.info("LIST %s bucket contents: %s", REARC_BUCKET, s3_client.list_objects_v2(Bucket=REARC_BUCKET, Prefix=folders[1])['Contents'][1])
     
     
     # PART 3
@@ -253,9 +271,8 @@ def lambda_handler(event, context):
     # df_1: 
     csv_file_key = "pr.data.0.Current"
     object_key = folders[0] + "/" + csv_file_key
-    csv_url = BASE_URL + object_key
-    
-    csv_response = http.request('GET', csv_url, decode_content=True)
+
+    csv_response = http.request('GET', CSV_URL, decode_content=True)
     open("/tmp/" + csv_file_key, "wb").write(csv_response.data)
     
     lst = os.listdir("/tmp")
@@ -331,10 +348,8 @@ def lambda_handler(event, context):
     report_series_ids = pd.Series(series_ids)
     report_years = pd.Series(years)
     report_max_vals = pd.Series(max_vals)
-    
     dict = {"series_id": report_series_ids, "year": report_years, "value": report_max_vals}
     df_best_years = pd.DataFrame(dict)
-    
     # print(df_best_years)
     
     
@@ -348,23 +363,28 @@ def lambda_handler(event, context):
 
     # df = trim_all_columns(df)
     df3 = trim_all_columns(df_1_clean)
-    
     df3.columns = df3.columns.str.strip()
-    
     df3_clean = df3[(df3['series_id']=="PRS30006032") & (df3['period']=='Q01')  ]
-    
     df_left = df3_clean.drop('footnote_codes', axis=1)
-    
     df_left_sorted = df_left.sort_values('value', ascending=False).head(1)
-    logger.info("REPORT: ")
-    print(df_left_sorted)
-    # df_final = df_left_sorted.style.hide_index()
+    report_year = df_left.sort_values('value', ascending=False).head(5)
     
-    # print(df_final)
-    logger.info("No population data available for 2022")
-    logger.info("Estimated 2022 population based on available df_2 data: 330,996,211")
-    logger.info("Estimated 2021 population based on available df_2 data: 328,775,310")
+    sqs_resource = boto3.resource('sqs')
+    queue = sqs_resource.get_queue_by_name(QueueName='RearcDataQuestW43Queue')
 
+    # Get the approximate number of messages in the queue
+    number_of_messages = queue.attributes.get('ApproximateNumberOfMessages')
+
+    logger.info("Approximate number of messages in SQS queue: %s", number_of_messages)
+    
+    for i in range(int(number_of_messages)): 
+        logger.info("REPORT: ")
+        # df_final = df_left_sorted.style.hide_index()
+        # print(df_final)
+        logger.info("No population data available for year %s", df_left_sorted['year'].iloc[:1].to_string(index=False)) 
+        # logger.info("Estimated 2022 population based on available df_2 data: 330,996,211")
+        # logger.info("Estimated 2021 population based on available df_2 data: 328,775,310")
+    
     
     return {
         'statusCode': 200,
